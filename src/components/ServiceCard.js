@@ -1,21 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, ShoppingCart, MapPin, Star, Calendar } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import ServiceModal from './ServiceModal';
 import Swal from 'sweetalert2';
 
 const ServiceCard = ({ service }) => {
-  const { addToCart } = useApp();
+  const { addToCart, fetchServicePhotos, servicePhotos } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [images, setImages] = useState([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [photosLoaded, setPhotosLoaded] = useState(false);
 
-  // Mock images for demonstration (you would get these from the photos API)
-  const mockImages = [
-    'https://via.placeholder.com/400x300/263DBF/FFFFFF?text=Imagen+1',
-    'https://via.placeholder.com/400x300/2E3C8C/FFFFFF?text=Imagen+2',
-    'https://via.placeholder.com/400x300/264CBF/FFFFFF?text=Imagen+3',
-    'https://via.placeholder.com/400x300/D9779B/FFFFFF?text=Imagen+4'
-  ];
+  // Cargar fotos reales del servicio de manera segura
+  useEffect(() => {
+    const loadPhotos = async () => {
+      const serviceId = service.id_servicio;
+      
+      if (!serviceId || photosLoaded) return;
+
+      // Verificar si ya tenemos las fotos en el contexto
+      if (servicePhotos[serviceId]) {
+        setImages(servicePhotos[serviceId]);
+        setPhotosLoaded(true);
+        return;
+      }
+
+      // Cargar fotos desde la API
+      setLoadingPhotos(true);
+      try {
+        const photos = await fetchServicePhotos(serviceId);
+        if (photos && photos.length > 0) {
+          setImages(photos);
+        } else {
+          // Usar imagen placeholder si no hay fotos
+          setImages(['https://via.placeholder.com/400x300/263DBF/FFFFFF?text=Sin+Fotos']);
+        }
+        setPhotosLoaded(true);
+      } catch (error) {
+        console.error('Error loading photos:', error);
+        setImages(['https://via.placeholder.com/400x300/263DBF/FFFFFF?text=Error+Carga']);
+        setPhotosLoaded(true);
+      } finally {
+        setLoadingPhotos(false);
+      }
+    };
+
+    loadPhotos();
+  }, [service.id_servicio, fetchServicePhotos, servicePhotos, photosLoaded]);
 
   const handleAddToCart = () => {
     addToCart(service);
@@ -31,11 +63,11 @@ const ServiceCard = ({ service }) => {
   };
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % mockImages.length);
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
   };
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + mockImages.length) % mockImages.length);
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
   const getServiceTypeIcon = (type) => {
@@ -73,44 +105,62 @@ const ServiceCard = ({ service }) => {
       <div className="card overflow-hidden group">
         {/* Image Carousel */}
         <div className="relative h-48 overflow-hidden">
-          <img
-            src={mockImages[currentImageIndex]}
-            alt={service.nombre}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
+          {loadingPhotos ? (
+            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-reservat-primary"></div>
+              <span className="ml-2 text-sm text-gray-600">Cargando fotos...</span>
+            </div>
+          ) : (
+            <img
+              src={images[currentImageIndex] || 'https://via.placeholder.com/400x300/263DBF/FFFFFF?text=Sin+Imagen'}
+              alt={service.nombre}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              onError={(e) => {
+                // Prevenir bucle infinito: solo cambiar la imagen una vez
+                if (!e.target.dataset.errorHandled) {
+                  e.target.dataset.errorHandled = 'true';
+                  e.target.src = 'https://via.placeholder.com/400x300/263DBF/FFFFFF?text=Error+Imagen';
+                }
+              }}
+            />
+          )}
           
           {/* Image Navigation */}
-          <div className="absolute inset-0 flex items-center justify-between p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <button
-              onClick={prevImage}
-              className="bg-black bg-opacity-50 text-white p-1 rounded-full hover:bg-opacity-70 transition-all duration-200"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={nextImage}
-              className="bg-black bg-opacity-50 text-white p-1 rounded-full hover:bg-opacity-70 transition-all duration-200"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
+          {images.length > 1 && (
+            <div className="absolute inset-0 flex items-center justify-between p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <button
+                onClick={prevImage}
+                className="bg-black bg-opacity-50 text-white p-1 rounded-full hover:bg-opacity-70 transition-all duration-200"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={nextImage}
+                className="bg-black bg-opacity-50 text-white p-1 rounded-full hover:bg-opacity-70 transition-all duration-200"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
 
           {/* Image Indicators */}
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
-            {mockImages.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentImageIndex(index)}
-                className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                  index === currentImageIndex ? 'bg-white' : 'bg-white bg-opacity-50'
-                }`}
-              />
-            ))}
-          </div>
+          {images.length > 1 && (
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+              {images.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                    index === currentImageIndex ? 'bg-white' : 'bg-white bg-opacity-50'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Service Type Badge */}
           <div className="absolute top-2 left-2">
@@ -192,11 +242,14 @@ const ServiceCard = ({ service }) => {
       </div>
 
       {/* Service Modal */}
-      <ServiceModal
-        service={service}
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-      />
+      {showModal && (
+        <ServiceModal
+          service={service}
+          images={images}
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </>
   );
 };

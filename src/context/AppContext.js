@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import Cookies from 'js-cookie';
 import jwtDecode from 'jwt-decode';
 
@@ -9,6 +9,7 @@ const initialState = {
   isAuthenticated: false,
   cart: [],
   services: [],
+  servicePhotos: {}, // Almacenar fotos por servicio ID
   loading: false,
   error: null,
   currentCategory: 'all',
@@ -46,6 +47,15 @@ function appReducer(state, action) {
     
     case 'SET_SERVICES':
       return { ...state, services: action.payload, loading: false };
+    
+    case 'SET_SERVICE_PHOTOS':
+      return { 
+        ...state, 
+        servicePhotos: { 
+          ...state.servicePhotos, 
+          [action.payload.serviceId]: action.payload.photos 
+        } 
+      };
     
     case 'ADD_TO_CART':
       const existingItem = state.cart.find(item => item.id_servicio === action.payload.id_servicio);
@@ -211,6 +221,55 @@ export function AppProvider({ children }) {
     }
   }, [dispatch]);
 
+  // Control robusto de peticiones de fotos para evitar bucles infinitos
+  const photosRequestsInProgress = useRef(new Set());
+  const photosCache = useRef(new Map());
+
+  const fetchServicePhotos = useCallback(async (serviceId) => {
+    try {
+      // Si ya tenemos las fotos en caché, devolverlas inmediatamente
+      if (photosCache.current.has(serviceId)) {
+        return photosCache.current.get(serviceId);
+      }
+
+      // Si ya hay una petición en progreso para este servicio, no hacer otra
+      if (photosRequestsInProgress.current.has(serviceId)) {
+        return [];
+      }
+
+      // Marcar que estamos haciendo una petición para este servicio
+      photosRequestsInProgress.current.add(serviceId);
+
+      const response = await fetch(`https://back-services.api-reservat.com/api/v1/fotos/servicios/${serviceId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Extraer solo las URLs de las fotos como solicitaste
+        const photoUrls = data.fotos.map(foto => foto.url);
+        
+        // Guardar en caché local para evitar peticiones duplicadas
+        photosCache.current.set(serviceId, photoUrls);
+        
+        // También guardar en el estado global para sincronización
+        dispatch({ 
+          type: 'SET_SERVICE_PHOTOS', 
+          payload: { serviceId, photos: photoUrls } 
+        });
+        
+        return photoUrls;
+      } else {
+        console.warn(`No se pudieron cargar las fotos para el servicio ${serviceId}`);
+        return [];
+      }
+    } catch (error) {
+      console.error(`Error fetching photos for service ${serviceId}:`, error);
+      return [];
+    } finally {
+      // Remover de las peticiones en progreso
+      photosRequestsInProgress.current.delete(serviceId);
+    }
+  }, [dispatch]);
+
   const getCartTotal = () => {
     return state.cart.reduce((total, item) => total + (item.precio * item.quantity), 0);
   };
@@ -225,10 +284,10 @@ export function AppProvider({ children }) {
     // Filter by category
     if (state.currentCategory !== 'all') {
       const categoryMap = {
-        'transportes': 'Transporte',
+        'transportes': 'transporte',
         'hoteles': 'alojamiento',
         'restaurantes': 'restaurante',
-        'experiencias': 'Experiencia'
+        'experiencias': 'experiencias'
       };
       filtered = filtered.filter(service => 
         service.tipo_servicio === categoryMap[state.currentCategory]
@@ -263,6 +322,7 @@ export function AppProvider({ children }) {
     dispatch,
     login,
     fetchServices,
+    fetchServicePhotos,
     getCartTotal,
     getCartItemsCount,
     getFilteredServices,

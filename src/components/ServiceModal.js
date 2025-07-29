@@ -3,17 +3,13 @@ import { X, MapPin, Calendar, Star, ShoppingCart, ChevronLeft, ChevronRight } fr
 import { useApp } from '../context/AppContext';
 import Swal from 'sweetalert2';
 
-const ServiceModal = ({ service, isOpen, onClose }) => {
+const ServiceModal = ({ service, images = [], isOpen, onClose }) => {
   const { addToCart } = useApp();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Mock images for demonstration
-  const mockImages = [
-    'https://via.placeholder.com/600x400/263DBF/FFFFFF?text=Imagen+1',
-    'https://via.placeholder.com/600x400/2E3C8C/FFFFFF?text=Imagen+2',
-    'https://via.placeholder.com/600x400/264CBF/FFFFFF?text=Imagen+3',
-    'https://via.placeholder.com/600x400/D9779B/FFFFFF?text=Imagen+4',
-    'https://via.placeholder.com/600x400/F2785C/FFFFFF?text=Imagen+5'
+  // Usar las imágenes reales o una imagen por defecto
+  const modalImages = images.length > 0 ? images : [
+    'https://via.placeholder.com/600x400/263DBF/FFFFFF?text=Sin+Imagen'
   ];
 
   if (!isOpen || !service) return null;
@@ -32,11 +28,11 @@ const ServiceModal = ({ service, isOpen, onClose }) => {
   };
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % mockImages.length);
+    setCurrentImageIndex((prev) => (prev + 1) % modalImages.length);
   };
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + mockImages.length) % mockImages.length);
+    setCurrentImageIndex((prev) => (prev - 1 + modalImages.length) % modalImages.length);
   };
 
   const parseServiceDetails = (detailsString) => {
@@ -96,7 +92,7 @@ const ServiceModal = ({ service, isOpen, onClose }) => {
           <div className="mb-6">
             <div className="relative h-64 md:h-80 rounded-lg overflow-hidden mb-4">
               <img
-                src={mockImages[currentImageIndex]}
+                src={modalImages[currentImageIndex]}
                 alt={service.nombre}
                 className="w-full h-full object-cover"
               />
@@ -117,13 +113,13 @@ const ServiceModal = ({ service, isOpen, onClose }) => {
 
               {/* Image Counter */}
               <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
-                {currentImageIndex + 1} / {mockImages.length}
+                {currentImageIndex + 1} / {modalImages.length}
               </div>
             </div>
 
             {/* Thumbnail Gallery */}
             <div className="flex space-x-2 overflow-x-auto pb-2">
-              {mockImages.map((image, index) => (
+              {modalImages.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
