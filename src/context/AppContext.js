@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import Cookies from 'js-cookie';
 import jwtDecode from 'jwt-decode';
 
@@ -194,7 +194,7 @@ export function AppProvider({ children }) {
     }
   };
 
-  const fetchServices = async () => {
+  const fetchServices = useCallback(async () => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await fetch('https://back-services.api-reservat.com/api/v1/servicios/listar/');
@@ -209,7 +209,7 @@ export function AppProvider({ children }) {
       console.error('Error fetching services:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Error al cargar servicios' });
     }
-  };
+  }, [dispatch]);
 
   const getCartTotal = () => {
     return state.cart.reduce((total, item) => total + (item.precio * item.quantity), 0);
