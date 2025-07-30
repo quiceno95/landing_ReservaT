@@ -1,13 +1,41 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
 import Cookies from 'js-cookie';
 import jwtDecode from 'jwt-decode';
 
 const AppContext = createContext();
 
+// Función para cargar el carrito desde localStorage
+const loadCartFromStorage = () => {
+  try {
+    // Verificar si localStorage está disponible
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return [];
+    }
+    const savedCart = localStorage.getItem('reservat_cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  } catch (error) {
+    console.error('Error loading cart from localStorage:', error);
+    return [];
+  }
+};
+
+// Función para guardar el carrito en localStorage
+const saveCartToStorage = (cart) => {
+  try {
+    // Verificar si localStorage está disponible
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return;
+    }
+    localStorage.setItem('reservat_cart', JSON.stringify(cart));
+  } catch (error) {
+    console.error('Error saving cart to localStorage:', error);
+  }
+};
+
 const initialState = {
   user: null,
   isAuthenticated: false,
-  cart: [],
+  cart: [], // Inicializar como array vacío temporalmente
   services: [],
   servicePhotos: {}, // Almacenar fotos por servicio ID
   loading: false,
@@ -59,39 +87,52 @@ function appReducer(state, action) {
     
     case 'ADD_TO_CART':
       const existingItem = state.cart.find(item => item.id_servicio === action.payload.id_servicio);
+      let newCart;
       if (existingItem) {
-        return {
-          ...state,
-          cart: state.cart.map(item =>
-            item.id_servicio === action.payload.id_servicio
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          )
-        };
+        newCart = state.cart.map(item =>
+          item.id_servicio === action.payload.id_servicio
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      } else {
+        newCart = [...state.cart, { ...action.payload, quantity: 1 }];
       }
+      // Guardar en localStorage
+      saveCartToStorage(newCart);
       return {
         ...state,
-        cart: [...state.cart, { ...action.payload, quantity: 1 }]
+        cart: newCart
       };
     
     case 'REMOVE_FROM_CART':
+      const filteredCart = state.cart.filter(item => item.id_servicio !== action.payload);
+      // Guardar en localStorage
+      saveCartToStorage(filteredCart);
       return {
         ...state,
-        cart: state.cart.filter(item => item.id_servicio !== action.payload)
+        cart: filteredCart
       };
     
     case 'UPDATE_CART_QUANTITY':
+      const updatedCart = state.cart.map(item =>
+        item.id_servicio === action.payload.id
+          ? { ...item, quantity: Math.max(0, action.payload.quantity) }
+          : item
+      ).filter(item => item.quantity > 0);
+      // Guardar en localStorage
+      saveCartToStorage(updatedCart);
       return {
         ...state,
-        cart: state.cart.map(item =>
-          item.id_servicio === action.payload.id
-            ? { ...item, quantity: Math.max(0, action.payload.quantity) }
-            : item
-        ).filter(item => item.quantity > 0)
+        cart: updatedCart
       };
     
     case 'CLEAR_CART':
+      // Limpiar localStorage
+      saveCartToStorage([]);
       return { ...state, cart: [] };
+    
+    case 'SET_CART':
+      return { ...state, cart: action.payload };
     
     case 'SET_CATEGORY':
       return { ...state, currentCategory: action.payload };
@@ -109,6 +150,9 @@ function appReducer(state, action) {
 
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [cartLoaded, setCartLoaded] = useState(false);
+  const photosCache = useRef(new Map());
+  const photosRequestsInProgress = useRef(new Set());
 
   // Check for existing token on app load
   useEffect(() => {
@@ -117,16 +161,27 @@ export function AppProvider({ children }) {
       try {
         const decoded = jwtDecode(token);
         if (decoded.exp * 1000 > Date.now()) {
-          fetchUserData(decoded.id);
+          dispatch({ type: 'SET_USER', payload: decoded });
         } else {
           Cookies.remove('access_token');
         }
       } catch (error) {
-        console.error('Invalid token:', error);
+        console.error('Error decoding token:', error);
         Cookies.remove('access_token');
       }
     }
   }, []);
+
+  // Cargar carrito desde localStorage después del montaje
+  useEffect(() => {
+    if (!cartLoaded) {
+      const savedCart = loadCartFromStorage();
+      if (savedCart.length > 0) {
+        dispatch({ type: 'SET_CART', payload: savedCart });
+      }
+      setCartLoaded(true);
+    }
+  }, [cartLoaded]);
 
   const fetchUserData = async (userId) => {
     try {
@@ -222,8 +277,7 @@ export function AppProvider({ children }) {
   }, [dispatch]);
 
   // Control robusto de peticiones de fotos para evitar bucles infinitos
-  const photosRequestsInProgress = useRef(new Set());
-  const photosCache = useRef(new Map());
+  // Las variables photosCache y photosRequestsInProgress ya están declaradas arriba
 
   const fetchServicePhotos = useCallback(async (serviceId) => {
     try {

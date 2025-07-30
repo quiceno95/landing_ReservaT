@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, Plus, Minus, Trash2, ShoppingBag, LogIn } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Swal from 'sweetalert2';
@@ -10,8 +10,20 @@ const Cart = ({ isOpen, onClose }) => {
     updateCartQuantity, 
     clearCart, 
     getCartTotal, 
-    isAuthenticated 
+    isAuthenticated,
+    servicePhotos,
+    fetchServicePhotos
   } = useApp();
+
+  // Cargar fotos de los servicios en el carrito
+  useEffect(() => {
+    cart.forEach(item => {
+      // Solo cargar si no tenemos ya las fotos para este servicio
+      if (!servicePhotos[item.id_servicio]) {
+        fetchServicePhotos(item.id_servicio);
+      }
+    });
+  }, [cart, servicePhotos, fetchServicePhotos]);
 
   const handleQuantityChange = (serviceId, newQuantity) => {
     if (newQuantity <= 0) {
@@ -138,8 +150,25 @@ const Cart = ({ isOpen, onClose }) => {
               {cart.map((item) => (
                 <div key={item.id_servicio} className="card p-4">
                   <div className="flex items-start space-x-3">
-                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                      <span className="text-xs text-gray-500">IMG</span>
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden">
+                      {servicePhotos[item.id_servicio] && servicePhotos[item.id_servicio].length > 0 ? (
+                        <img
+                          src={servicePhotos[item.id_servicio][0]}
+                          alt={item.nombre}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback a placeholder si la imagen falla
+                            if (!e.target.dataset.errorHandled) {
+                              e.target.dataset.errorHandled = 'true';
+                              e.target.src = 'https://via.placeholder.com/64x64/E5E7EB/9CA3AF?text=IMG';
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <span className="text-xs text-gray-500">IMG</span>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex-1 min-w-0">

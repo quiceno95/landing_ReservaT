@@ -123,25 +123,28 @@ const LoginModal = ({ isOpen, onClose }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`w-full btn-primary group flex items-center justify-center space-x-2 transition-all duration-200 ${
+              loading 
+                ? 'opacity-75 cursor-not-allowed transform scale-[0.98]' 
+                : 'hover:transform hover:scale-[1.02] active:scale-[0.98]'
+            }`}
           >
             {loading ? (
-              <Loader className="h-4 w-4 animate-spin" />
+              <>
+                <div className="relative">
+                  <Loader className="h-4 w-4 animate-spin" />
+                  <div className="absolute inset-0 h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <span className="animate-pulse">Iniciando sesión...</span>
+              </>
             ) : (
-              <LogIn className="h-4 w-4" />
+              <>
+                <LogIn className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                <span>Iniciar Sesión</span>
+              </>
             )}
-            <span>{loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}</span>
           </button>
         </form>
-
-        {/* Demo Credentials */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600 mb-2 font-medium">Credenciales de prueba:</p>
-          <p className="text-xs text-gray-500">
-            Email: quiceno_hotel@email.com<br />
-            Contraseña: 12345678
-          </p>
-        </div>
       </div>
     </div>
   );
