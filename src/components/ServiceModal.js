@@ -60,6 +60,366 @@ const ServiceModal = ({ service, images = [], isOpen, onClose }) => {
     }
   };
 
+  // Función para renderizar detalles de experiencias
+  const renderExperienceDetails = (details) => {
+    return (
+      <div className="space-y-4">
+        {/* Información básica */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <span className="text-sm font-medium text-gray-700">Tipo Tour:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.tipo_tour}</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-700">Duración:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.duracion}</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-700">Grupo Objetivo:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.grupo_objetivo}</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-700">Dificultad:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.dificultad}</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-700">Grupo Máximo:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.grupo_maximo} personas</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-700">Punto de Encuentro:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.punto_de_encuentro}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Incluye */}
+        {details.incluye && (
+          <div className="bg-green-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Incluye</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(details.incluye).map(([key, value]) => (
+                <div key={key} className="flex items-center">
+                  <span className={`w-2 h-2 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  <span className="text-sm text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Disponibilidad */}
+        {details.disponibilidad && (
+          <div className="bg-blue-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Disponibilidad</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span className="text-sm font-medium text-gray-700">Fechas:</span>
+                <span className="text-sm text-gray-600 ml-2">{details.disponibilidad.fechas}</span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700">Horarios:</span>
+                <span className="text-sm text-gray-600 ml-2">{details.disponibilidad.horarios}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Idiomas */}
+        {details.idiomas && (
+          <div className="bg-purple-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Idiomas</h4>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(details.idiomas).map(([key, value]) => {
+                if (key === 'otros' && value) {
+                  return (
+                    <div key={key} className="col-span-3">
+                      <span className="text-sm font-medium text-gray-700">Otros:</span>
+                      <span className="text-sm text-gray-600 ml-2">{value}</span>
+                    </div>
+                  );
+                }
+                if (key !== 'otros') {
+                  return (
+                    <div key={key} className="flex items-center">
+                      <span className={`w-2 h-2 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                      <span className="text-sm text-gray-700 capitalize">{key}</span>
+                    </div>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Extras y características adicionales */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {details.extras && (
+            <div className="bg-yellow-50 rounded-lg p-4">
+              <h4 className="text-md font-semibold text-gray-900 mb-3">Extras</h4>
+              <div className="space-y-2">
+                {Object.entries(details.extras).map(([key, value]) => (
+                  <div key={key} className="flex items-center">
+                    <span className={`w-2 h-2 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                    <span className="text-sm text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Servicios Adicionales</h4>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <span className={`w-2 h-2 rounded-full mr-2 ${details.parqueadero ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                <span className="text-sm text-gray-700">Parqueadero</span>
+              </div>
+              <div className="flex items-center">
+                <span className={`w-2 h-2 rounded-full mr-2 ${details.pet_friendly ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                <span className="text-sm text-gray-700">Pet Friendly</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Equipamiento requerido */}
+        {details.equipamiento_requerido && (
+          <div className="bg-orange-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Equipamiento Requerido</h4>
+            <p className="text-sm text-gray-700">{details.equipamiento_requerido}</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Función para renderizar detalles de alojamiento
+  const renderAccommodationDetails = (details) => {
+    return (
+      <div className="space-y-4">
+        {/* Información básica */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <span className="text-sm font-medium text-gray-700">Tipo Alojamiento:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.tipo_alojamiento}</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-700">Habitación:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.habitacion}</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-700">Capacidad:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.capacidad} personas</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Servicios incluidos */}
+        {details.servicios_incluidos && (
+          <div className="bg-green-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Servicios Incluidos</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {Object.entries(details.servicios_incluidos).map(([key, value]) => (
+                <div key={key} className="flex items-center">
+                  <span className={`w-2 h-2 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  <span className="text-sm text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Política de reservas */}
+        {details.politica_reservas && (
+          <div className="bg-blue-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Política Reservas</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span className="text-sm font-medium text-gray-700">Check-in:</span>
+                <span className="text-sm text-gray-600 ml-2">{details.politica_reservas.check_in}</span>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700">Check-out:</span>
+                <span className="text-sm text-gray-600 ml-2">{details.politica_reservas.check_out}</span>
+              </div>
+              <div className="md:col-span-2">
+                <span className="text-sm font-medium text-gray-700">Cancelaciones:</span>
+                <span className="text-sm text-gray-600 ml-2">{details.politica_reservas.cancelaciones}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Precios */}
+        {details.precios && (
+          <div className="bg-yellow-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Precios</h4>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(details.precios).map(([key, value]) => (
+                <div key={key} className="flex items-center">
+                  <span className={`w-2 h-2 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  <span className="text-sm text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Extras */}
+        {details.extras && (
+          <div className="bg-purple-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Extras</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(details.extras).map(([key, value]) => (
+                <div key={key} className="flex items-center">
+                  <span className={`w-2 h-2 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  <span className="text-sm text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Función para renderizar detalles de restaurante
+  const renderRestaurantDetails = (details) => {
+    return (
+      <div className="space-y-4">
+        {/* Información básica */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <span className="text-sm font-medium text-gray-700">Tipo Establecimiento:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.tipo_establecimiento}</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-700">Estilo Gastronómico:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.estilo_gastronomico}</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-700">Capacidad:</span>
+              <span className="text-sm text-gray-600 ml-2">{details.capacidad} personas</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Servicios */}
+        {details.servicios && (
+          <div className="bg-green-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Servicios</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {Object.entries(details.servicios).map(([key, value]) => (
+                <div key={key} className="flex items-center">
+                  <span className={`w-2 h-2 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  <span className="text-sm text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Horarios */}
+        {details.horarios && (
+          <div className="bg-blue-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Horarios</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {Object.entries(details.horarios).map(([key, value]) => (
+                <div key={key} className="flex items-center">
+                  <span className={`w-2 h-2 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  <span className="text-sm text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Extras */}
+        {details.extras && (
+          <div className="bg-yellow-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Extras</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(details.extras).map(([key, value]) => (
+                <div key={key} className="flex items-center">
+                  <span className={`w-2 h-2 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  <span className="text-sm text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Promociones */}
+        {details.promociones && (
+          <div className="bg-orange-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Promociones</h4>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(details.promociones).map(([key, value]) => (
+                <div key={key} className="flex items-center">
+                  <span className={`w-2 h-2 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  <span className="text-sm text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Servicios adicionales */}
+        {details.servicios_adicionales && (
+          <div className="bg-purple-50 rounded-lg p-4">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Servicios Adicionales</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {Object.entries(details.servicios_adicionales).map(([key, value]) => (
+                <div key={key} className="flex items-center">
+                  <span className={`w-2 h-2 rounded-full mr-2 ${value ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  <span className="text-sm text-gray-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Función principal para renderizar detalles según el tipo de servicio
+  const renderServiceDetails = (details, serviceType) => {
+    switch (serviceType?.toLowerCase()) {
+      case 'experiencias':
+      case 'experiencia':
+        return renderExperienceDetails(details);
+      case 'alojamiento':
+      case 'hoteles':
+        return renderAccommodationDetails(details);
+      case 'restaurante':
+      case 'restaurantes':
+        return renderRestaurantDetails(details);
+      default:
+        // Fallback para tipos no reconocidos
+        return (
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(details).map(([key, value]) => (
+                <div key={key}>
+                  <span className="text-sm font-medium text-gray-700 capitalize">
+                    {key.replace(/_/g, ' ')}:
+                  </span>
+                  <span className="text-sm text-gray-600 ml-2">
+                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
       <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
@@ -167,20 +527,7 @@ const ServiceModal = ({ service, images = [], isOpen, onClose }) => {
               {Object.keys(serviceDetails).length > 0 && (
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-3">Detalles del servicio</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {Object.entries(serviceDetails).map(([key, value]) => (
-                        <div key={key}>
-                          <span className="text-sm font-medium text-gray-700 capitalize">
-                            {key.replace(/_/g, ' ')}:
-                          </span>
-                          <span className="text-sm text-gray-600 ml-2">
-                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  {renderServiceDetails(serviceDetails, service.tipo_servicio)}
                 </div>
               )}
             </div>
