@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Plus, Minus, Trash2, ShoppingBag, LogIn } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Swal from 'sweetalert2';
@@ -11,9 +11,14 @@ const Cart = ({ isOpen, onClose }) => {
     clearCart, 
     getCartTotal, 
     isAuthenticated,
+    user,
     servicePhotos,
     fetchServicePhotos
   } = useApp();
+
+  // Estado modal de resumen
+  const [showSummary, setShowSummary] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Cargar fotos de los servicios en el carrito
   useEffect(() => {
@@ -83,7 +88,7 @@ const Cart = ({ isOpen, onClose }) => {
     });
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!isAuthenticated) {
       Swal.fire({
         title: 'Inicia sesión requerida',
@@ -105,13 +110,89 @@ const Cart = ({ isOpen, onClose }) => {
       return;
     }
 
-    // Here you would integrate with the reservation API
-    Swal.fire({
-      title: 'Funcionalidad en desarrollo',
-      text: 'La integración con la API de reservas está en desarrollo',
-      icon: 'info',
-      confirmButtonColor: '#263DBF'
-    });
+    // Enviar reservas: una por cada servicio en el carrito
+    try {
+      setIsSubmitting(true);
+      const endpoint = 'https://back-services.api-reservat.com/api/v1/reservas/crear';
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+
+      const requests = cart.map((item) => {
+        const fechaEntrada = item?.reserva?.fecha_entrada || todayStr;
+        const fechaSalida = item?.reserva?.fecha_salida || item?.reserva?.fecha_entrada || todayStr;
+
+        const payload = {
+          id_proveedor: item.id_proveedor || item.proveedor_id || '',
+          id_servicio: item.id_servicio,
+          id_mayorista: (user && (user.id_mayorista || user.id)) || '',
+          nombre_servicio: item.nombre || '',
+          descripcion: item.descripcion || '',
+          tipo_servicio: String(item.tipo_servicio || '').toLowerCase(),
+          precio: String(item.precio ?? ''),
+          ciudad: item.ciudad || '',
+          activo: true,
+          estado: 'pendiente',
+          observaciones: 'pendiente de confirmacion para disponibilidad de fechas ',
+          fecha_creacion: todayStr,
+          cantidad: item.quantity || 1,
+          fecha_inicio: fechaEntrada,
+          fecha_fin: fechaSalida
+        };
+
+        return fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        }).then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data?.message || `Error ${res.status}`);
+          }
+          return { ok: true, item, data };
+        }).catch((err) => ({ ok: false, item, error: err.message }));
+      });
+
+      const results = await Promise.allSettled(requests);
+      const flattened = results.map(r => r.value || r.reason);
+      const success = flattened.filter(r => r?.ok);
+      const failed = flattened.filter(r => !r?.ok);
+
+      if (success.length > 0 && failed.length === 0) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Reservas registradas',
+          text: `Se registraron ${success.length} reserva(s) correctamente.`,
+          confirmButtonColor: '#263DBF'
+        });
+        // Vaciar carrito tras éxito total
+        clearCart();
+      } else if (success.length > 0 && failed.length > 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Reservas parcialmente registradas',
+          html: `Exitosas: <b>${success.length}</b><br/>Fallidas: <b>${failed.length}</b>`,
+          confirmButtonColor: '#263DBF'
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'No se pudieron registrar las reservas',
+          text: 'Intenta nuevamente más tarde.',
+          confirmButtonColor: '#263DBF'
+        });
+      }
+    } catch (e) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error inesperado',
+        text: e.message || 'Intenta nuevamente más tarde.',
+        confirmButtonColor: '#263DBF'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -215,6 +296,28 @@ const Cart = ({ isOpen, onClose }) => {
                       ${(item.precio * item.quantity).toLocaleString()}
                     </p>
                   </div>
+
+                  {/* Detalles de reserva */}
+                  {item.reserva && (
+                    <div className="mt-3 text-sm text-gray-600 space-y-1">
+                      <div>
+                        <span className="font-medium">Personas:</span> {item.quantity}
+                      </div>
+                      <div>
+                        <span className="font-medium">Fecha entrada:</span> {item.reserva.fecha_entrada}
+                      </div>
+                      {item.reserva.fecha_salida && (
+                        <div>
+                          <span className="font-medium">Fecha salida:</span> {item.reserva.fecha_salida}
+                        </div>
+                      )}
+                      {item.reserva.hora && (
+                        <div>
+                          <span className="font-medium">Hora:</span> {item.reserva.hora}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -236,11 +339,12 @@ const Cart = ({ isOpen, onClose }) => {
             <div className="space-y-2">
               <button
                 onClick={handleCheckout}
-                className="w-full btn-primary flex items-center justify-center space-x-2"
+                className={`w-full btn-primary flex items-center justify-center space-x-2 ${isSubmitting ? 'opacity-75 cursor-not-allowed' : ''}`}
+                disabled={isSubmitting}
               >
                 {!isAuthenticated && <LogIn className="h-4 w-4" />}
                 <span>
-                  {isAuthenticated ? 'Proceder al pago' : 'Inicia sesión para comprar'}
+                  {isAuthenticated ? (isSubmitting ? 'Enviando reservas...' : 'Proceder al pago') : 'Inicia sesión para comprar'}
                 </span>
               </button>
               
@@ -254,6 +358,66 @@ const Cart = ({ isOpen, onClose }) => {
           </div>
         )}
       </div>
+
+      {/* Modal Resumen de Compra */}
+      {showSummary && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60] animate-fade-in">
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-bold">Resumen de compra</h3>
+              <button onClick={() => setShowSummary(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              {cart.map((item) => (
+                <div key={item.id_servicio} className="border rounded-lg p-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium text-gray-900">{item.nombre}</div>
+                      <div className="text-sm text-gray-500">{item.ciudad}</div>
+                    </div>
+                    <div className="font-bold text-reservat-primary">${(item.precio * item.quantity).toLocaleString()}</div>
+                  </div>
+                  {item.reserva && (
+                    <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-gray-700">
+                      <div><span className="font-medium">Personas:</span> {item.quantity}</div>
+                      <div><span className="font-medium">Entrada:</span> {item.reserva.fecha_entrada}</div>
+                      {item.reserva.fecha_salida && (
+                        <div><span className="font-medium">Salida:</span> {item.reserva.fecha_salida}</div>
+                      )}
+                      {item.reserva.hora && (
+                        <div><span className="font-medium">Hora:</span> {item.reserva.hora}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div className="flex justify-between items-center pt-3 border-t font-bold text-lg">
+                <span>Total</span>
+                <span className="text-reservat-primary">${getCartTotal().toLocaleString()}</span>
+              </div>
+            </div>
+            <div className="p-4 border-t flex space-x-2">
+              <button onClick={() => setShowSummary(false)} className="btn-secondary w-1/2">Volver</button>
+              <button
+                onClick={() => {
+                  setShowSummary(false);
+                  Swal.fire({
+                    title: 'Funcionalidad en desarrollo',
+                    text: 'La integración con la API de reservas está en desarrollo',
+                    icon: 'info',
+                    confirmButtonColor: '#263DBF'
+                  });
+                }}
+                className="btn-primary w-1/2"
+              >
+                Confirmar y pagar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

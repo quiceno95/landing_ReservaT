@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShoppingCart, User, LogIn, LogOut, Menu, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Cart from './Cart';
+import ReservationsModal from './ReservationsModal';
 import LoginModal from './LoginModal';
 
 const Header = () => {
@@ -18,6 +19,7 @@ const Header = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showReservations, setShowReservations] = useState(false);
 
   const categories = [
     { id: 'all', name: 'Todos', label: 'Todos los servicios' },
@@ -115,6 +117,12 @@ const Header = () => {
                         <p className="text-xs text-gray-500">{user?.email}</p>
                       </div>
                       <button
+                        onClick={() => { setShowReservations(true); setShowUserMenu(false); }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                      >
+                        <span>Ver reservas</span>
+                      </button>
+                      <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
                       >
@@ -173,6 +181,7 @@ const Header = () => {
 
       {/* Modals */}
       <Cart isOpen={showCart} onClose={() => setShowCart(false)} />
+      <ReservationsModal isOpen={showReservations} onClose={() => setShowReservations(false)} />
       <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} />
       
       {/* Overlay for user menu */}
