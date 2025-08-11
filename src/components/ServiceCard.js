@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, ShoppingCart, MapPin, Star, Calendar } from 'lucide-react';
+import { Eye, MapPin, Star, Calendar } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import ServiceModal from './ServiceModal';
-import Swal from 'sweetalert2';
+// import Swal from 'sweetalert2';
 
 const ServiceCard = ({ service }) => {
-  const { addToCart, fetchServicePhotos, servicePhotos } = useApp();
+  const { fetchServicePhotos, servicePhotos } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [images, setImages] = useState([]);
@@ -49,18 +49,8 @@ const ServiceCard = ({ service }) => {
     loadPhotos();
   }, [service.id_servicio, fetchServicePhotos, servicePhotos, photosLoaded]);
 
-  const handleAddToCart = () => {
-    addToCart(service);
-    Swal.fire({
-      title: '¡Agregado al carrito!',
-      text: `${service.nombre} ha sido agregado a tu carrito`,
-      icon: 'success',
-      timer: 2000,
-      showConfirmButton: false,
-      toast: true,
-      position: 'top-end'
-    });
-  };
+  // El agregado al carrito se realiza únicamente desde el modal de detalles
+  // para capturar información adicional (personas, fechas, horario).
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
@@ -222,20 +212,13 @@ const ServiceCard = ({ service }) => {
           </div>
 
           {/* Actions */}
-          <div className="flex space-x-2">
+          <div className="flex">
             <button
               onClick={() => setShowModal(true)}
-              className="flex-1 btn-secondary flex items-center justify-center space-x-2"
+              className="w-full btn-secondary flex items-center justify-center space-x-2"
             >
               <Eye className="w-4 h-4" />
               <span>Ver más detalles</span>
-            </button>
-            <button
-              onClick={handleAddToCart}
-              className="flex-1 btn-primary flex items-center justify-center space-x-2"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              <span>Agregar al carrito</span>
             </button>
           </div>
         </div>

@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { X, MapPin, Calendar, Star, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, MapPin, Calendar, Star, ShoppingCart, ChevronLeft, ChevronRight, Users, Clock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Swal from 'sweetalert2';
 
 const ServiceModal = ({ service, images = [], isOpen, onClose }) => {
   const { addToCart } = useApp();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  // Estado de reserva
+  const [personas, setPersonas] = useState(1);
+  const [fechaEntrada, setFechaEntrada] = useState('');
+  const [fechaSalida, setFechaSalida] = useState(''); // solo alojamiento
+  const [hora, setHora] = useState(''); // experiencias/restaurante
 
   // Usar las imágenes reales o una imagen por defecto
   const modalImages = images.length > 0 ? images : [
@@ -15,7 +20,74 @@ const ServiceModal = ({ service, images = [], isOpen, onClose }) => {
   if (!isOpen || !service) return null;
 
   const handleAddToCart = () => {
-    addToCart(service);
+    // Validaciones según tipo de servicio
+    const tipo = (service.tipo_servicio || '').toLowerCase();
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+
+    if (!personaValida(personas)) {
+      return Swal.fire({
+        icon: 'warning',
+        title: 'Cantidad inválida',
+        text: 'La cantidad de personas debe ser al menos 1',
+        confirmButtonColor: '#263DBF'
+      });
+    }
+
+    if (!fechaEntrada) {
+      return Swal.fire({
+        icon: 'warning',
+        title: 'Fecha requerida',
+        text: 'Debes seleccionar una fecha de entrada',
+        confirmButtonColor: '#263DBF'
+      });
+    }
+
+    const fEntrada = new Date(fechaEntrada);
+    if (!(fEntrada > hoy)) {
+      return Swal.fire({
+        icon: 'warning',
+        title: 'Fecha de entrada inválida',
+        text: 'La fecha de entrada debe ser mayor a la fecha actual',
+        confirmButtonColor: '#263DBF'
+      });
+    }
+
+    let reserva = { fecha_entrada: fechaEntrada };
+
+    if (tipo === 'alojamiento' || tipo === 'hoteles') {
+      if (!fechaSalida) {
+        return Swal.fire({
+          icon: 'warning',
+          title: 'Fecha de salida requerida',
+          text: 'Debes seleccionar una fecha de salida',
+          confirmButtonColor: '#263DBF'
+        });
+      }
+      const fSalida = new Date(fechaSalida);
+      if (!(fSalida > fEntrada)) {
+        return Swal.fire({
+          icon: 'warning',
+          title: 'Fecha de salida inválida',
+          text: 'La fecha de salida debe ser mayor a la fecha de entrada',
+          confirmButtonColor: '#263DBF'
+        });
+      }
+      reserva.fecha_salida = fechaSalida;
+    } else {
+      // experiencias o restaurante
+      if (!hora) {
+        return Swal.fire({
+          icon: 'warning',
+          title: 'Hora requerida',
+          text: 'Debes seleccionar una hora',
+          confirmButtonColor: '#263DBF'
+        });
+      }
+      reserva.hora = hora;
+    }
+
+    addToCart(service, { quantity: personas, reserva });
     Swal.fire({
       title: '¡Agregado al carrito!',
       text: `${service.nombre} ha sido agregado a tu carrito`,
@@ -25,7 +97,10 @@ const ServiceModal = ({ service, images = [], isOpen, onClose }) => {
       toast: true,
       position: 'top-end'
     });
+    onClose && onClose();
   };
+
+  const personaValida = (n) => Number(n) >= 1;
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % modalImages.length);
@@ -542,7 +617,54 @@ const ServiceModal = ({ service, images = [], isOpen, onClose }) => {
                   </div>
                   <div className="text-sm text-gray-500">{service.moneda}</div>
                 </div>
-                
+                {/* Formulario de reserva */}
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center space-x-2">
+                    <Users className="w-4 h-4 text-gray-500" />
+                    <input
+                      type="number"
+                      min={1}
+                      value={personas}
+                      onChange={(e) => setPersonas(parseInt(e.target.value || '1', 10))}
+                      className="input w-full"
+                      placeholder="Cantidad de personas"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <input
+                      type="date"
+                      value={fechaEntrada}
+                      onChange={(e) => setFechaEntrada(e.target.value)}
+                      className="input w-full"
+                      placeholder="Fecha de entrada"
+                    />
+                  </div>
+                  {(service.tipo_servicio?.toLowerCase() === 'alojamiento' || service.tipo_servicio?.toLowerCase() === 'hoteles') ? (
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <input
+                        type="date"
+                        value={fechaSalida}
+                        onChange={(e) => setFechaSalida(e.target.value)}
+                        className="input w-full"
+                        placeholder="Fecha de salida"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-4 h-4 text-gray-500" />
+                      <input
+                        type="time"
+                        value={hora}
+                        onChange={(e) => setHora(e.target.value)}
+                        className="input w-full"
+                        placeholder="Hora"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <button
                   onClick={handleAddToCart}
                   className="w-full btn-primary flex items-center justify-center space-x-2"

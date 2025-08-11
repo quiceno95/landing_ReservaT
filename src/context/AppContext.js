@@ -87,15 +87,25 @@ function appReducer(state, action) {
     
     case 'ADD_TO_CART':
       const existingItem = state.cart.find(item => item.id_servicio === action.payload.id_servicio);
+      const addQty = Math.max(1, Number(action.payload.quantity || 1));
       let newCart;
       if (existingItem) {
         newCart = state.cart.map(item =>
           item.id_servicio === action.payload.id_servicio
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { 
+                ...item, 
+                quantity: item.quantity + addQty,
+                // Guardar/actualizar datos de reserva si vienen en el payload
+                reserva: action.payload.reserva ? { ...item.reserva, ...action.payload.reserva } : item.reserva
+              }
             : item
         );
       } else {
-        newCart = [...state.cart, { ...action.payload, quantity: 1 }];
+        // Crear nuevo item con cantidad personalizada y datos de reserva opcionales
+        const newItem = { ...action.payload };
+        newItem.quantity = addQty;
+        if (action.payload.reserva) newItem.reserva = action.payload.reserva;
+        newCart = [...state.cart, newItem];
       }
       // Guardar en localStorage
       saveCartToStorage(newCart);
@@ -381,7 +391,10 @@ export function AppProvider({ children }) {
     getCartItemsCount,
     getFilteredServices,
     logout: () => dispatch({ type: 'LOGOUT' }),
-    addToCart: (service) => dispatch({ type: 'ADD_TO_CART', payload: service }),
+    // addToCart ahora acepta (service, options)
+    // options: { quantity?: number, reserva?: { fecha_entrada, fecha_salida?, hora? } }
+    addToCart: (service, options = {}) => 
+      dispatch({ type: 'ADD_TO_CART', payload: { ...service, ...options } }),
     removeFromCart: (serviceId) => dispatch({ type: 'REMOVE_FROM_CART', payload: serviceId }),
     updateCartQuantity: (id, quantity) => dispatch({ type: 'UPDATE_CART_QUANTITY', payload: { id, quantity } }),
     clearCart: () => dispatch({ type: 'CLEAR_CART' }),
